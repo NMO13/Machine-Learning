@@ -1,6 +1,8 @@
 # https://mattmazur.com/2015/03/17/a-step-by-step-backpropagation-example/
 import numpy as np
 import mnist_loader
+import matplotlib.pyplot as plt
+from sklearn import datasets
 
 class MyNeuralNet:
     def __init__(self):
@@ -123,25 +125,13 @@ class MyNeuralNet:
         return sum(int(x == y) for (x, y) in test_results)
 
 if __name__ == '__main__':
-    training_data, validation_data, test_data = mnist_loader.load_data_wrapper()
-    training_data = np.array(training_data[:1000])
-    X = training_data[:, 0]
-    X = np.array(list(map(lambda x: x.flatten(), X)))
-
-    y = training_data[:, 1]
-    y = np.array(list(map(lambda x: x.flatten(), y)))
-    #X = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
-    #y = np.array([0, 1, 1, 1])
-
-    #X = np.array([[0.05, 0.10]])
-    #y = np.array([[0.01, 0.99]])
-
+    np.random.seed(0)
+    X, y = datasets.make_moons(200, noise=0.20)
+    plt.scatter(X[:, 0], X[:, 1], s=40, c=y, cmap=plt.cm.Spectral)
+    plt.show()
     nn = MyNeuralNet()
     nn.input = X
-    nn.y = y
+    nn.y = np.reshape(y, (200, 1))
     nn.add_layer(1)
-    nn.add_layer(10)
-    #nn.add_layer(2)
-    nn.learn(1500, 0.1, test_data)
-    #print(nn.output)
-    print(nn.classify(np.array([X[0]])))
+    nn.learn(1500, 0.1)
+    print(nn.classify(np.array([X[2]])))
