@@ -1,6 +1,6 @@
 import unittest
 import numpy as np
-from under_work import MyNeuralNet
+from my_neural_network import MyNeuralNet
 
 class TestNeuralNet(unittest.TestCase):
 

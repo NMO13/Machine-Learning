@@ -20,7 +20,7 @@ class MyNeuralNet:
 
     def add_layer(self, neuron_count, seed = None):
         np.random.seed(seed)
-        weight_layer = np.random.rand(neuron_count, self.last_layer_neuron_count + 1)
+        weight_layer = np.random.randn(neuron_count, self.last_layer_neuron_count + 1)
         # add a new layer of neurons and initialize weights randomly
         self.weights.append(weight_layer)
         self.last_layer_neuron_count = neuron_count
@@ -36,7 +36,7 @@ class MyNeuralNet:
             if test_data:
                 print('Epoch {0}: {1} / {2}'.format(i, self.evaluate(test_data), len(test_data)))
             else:
-                print('Epoch {0} complete'.format(i));
+                print('Epoch {0} complete'.format(i))
 
 
     def classify(self, input):
@@ -44,8 +44,6 @@ class MyNeuralNet:
             raise ValueError('Network is not initialized.')
         a = input
         for w in self.weights:
-            #a1 = np.zeros((input.shape[0], input.shape[1]+1))
-            #a1[:, :-1] = a
             a = np.append(a, [[1] for x in a], axis=1)
             z = np.dot(a, w.T)
             a = self.sigmoid(z)
@@ -93,6 +91,7 @@ class MyNeuralNet:
             delta_l2 = np.dot(last_delta, weights_prev_layer) * (self.a_matrix[n + 1] * (1 - self.a_matrix[n + 1]))
             w_b_gradient[n][:, :-1] = np.dot(delta_l2.T, self.a_matrix[n])
             w_b_gradient[n][:, -1] = np.sum(delta_l2.T, axis=1)
+            last_delta = delta_l2
 
         return w_b_gradient
 
@@ -125,13 +124,21 @@ class MyNeuralNet:
         return sum(int(x == y) for (x, y) in test_results)
 
 if __name__ == '__main__':
-    np.random.seed(0)
-    X, y = datasets.make_moons(200, noise=0.20)
-    plt.scatter(X[:, 0], X[:, 1], s=40, c=y, cmap=plt.cm.Spectral)
-    plt.show()
+    training_data, validation_data, test_data = mnist_loader.load_data_wrapper()
+    training_data = np.array(training_data)
+    X = training_data[:, 0]
+    X = np.array(list(map(lambda x: x.flatten(), X)))
+
+    y = training_data[:, 1]
+    y = np.array(list(map(lambda x: x.flatten(), y)))
+
     nn = MyNeuralNet()
     nn.input = X
-    nn.y = np.reshape(y, (200, 1))
-    nn.add_layer(1)
-    nn.learn(1500, 0.1)
-    print(nn.classify(np.array([X[2]])))
+    nn.y = y
+    nn.add_layer(256)
+    nn.add_layer(256)
+    nn.add_layer(10)
+    try:
+        nn.learn(1500, 0.0001, test_data=test_data)
+    except Exception as e:
+        print(e)
