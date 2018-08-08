@@ -4,6 +4,7 @@ import mnist_loader
 import matplotlib.pyplot as plt
 from sklearn import datasets
 
+# Configurable neural network that uses vanilla batch gradient descent
 class MyNeuralNet:
     def __init__(self):
         self.weights = list()
@@ -114,6 +115,7 @@ class MyNeuralNet:
         self.weights.append(np.array([[0.15, 0.2, 0.35], [0.25, 0.3, 0.35]]))
         self.weights.append(np.array([[0.4, 0.45, 0.6], [0.5, 0.55, 0.6]]))
 
+    # method from http://neuralnetworksanddeeplearning.com/chap1.html
     def evaluate(self, test_data):
         """Return the number of test inputs for which the neural
         network outputs the correct result. Note that the neural
@@ -123,6 +125,7 @@ class MyNeuralNet:
                         for (x, y) in test_data]
         return sum(int(x == y) for (x, y) in test_results)
 
+# The main script creates a network that learns MNIST images
 if __name__ == '__main__':
     training_data, validation_data, test_data = mnist_loader.load_data_wrapper()
     training_data = np.array(training_data)
