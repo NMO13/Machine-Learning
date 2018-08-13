@@ -17,7 +17,7 @@ class MyNeuralNet:
     @input.setter
     def input(self, value):
         self._input = value
-        self.last_layer_neuron_count = value.shape[1]
+        self.last_layer_neuron_count = value[0][0].shape[0]
 
     def add_layer(self, neuron_count, seed = None):
         np.random.seed(seed)
@@ -26,14 +26,18 @@ class MyNeuralNet:
         self.weights.append(weight_layer)
         self.last_layer_neuron_count = neuron_count
 
-    def learn(self, epochs, eta, test_data = None):
+    def learn(self, epochs, eta, mini_batch_size, test_data = None):
         if self.last_layer_neuron_count == 0:
             raise ValueError('No output layer specified.')
         for i in range(epochs):
+            np.random.shuffle(self.input)
+            mini_batches = [self._input[k:k+mini_batch_size] for k in range(0, len(self._input), mini_batch_size)]
+            for mini_batch in mini_batches:
             # apply gradient descent on cost function and
             # update all weights
-            self.feed_forward()
-            self.update(self.backward(), eta)
+                self.feed_forward(mini_batch[:,0])
+                res = self.backward(mini_batch[:,1])
+                self.update(res, eta, mini_batch_size)
             if test_data:
                 print('Epoch {0}: {1} / {2}'.format(i, self.evaluate(test_data), len(test_data)))
             else:
@@ -50,8 +54,9 @@ class MyNeuralNet:
             a = self.sigmoid(z)
         return a
 
-    def feed_forward(self):
-        a = np.array(self._input, copy=True)
+    def feed_forward(self, mini_batch):
+        mini_batch = np.stack(mini_batch, axis=0)
+        a = np.array(mini_batch, copy=True)
         self.a_matrix = [a]
         for w in self.weights:
             # add bias term
@@ -63,13 +68,14 @@ class MyNeuralNet:
         #todo
         #print(self.calc_loss())
 
-    def backward(self):
+    def backward(self, y):
+        y = np.stack(y, axis=0)
         w_b_gradient = [np.zeros(w.shape) for w in self.weights]
-        if self.a_matrix[-1].shape != self.y.shape:
+        if self.a_matrix[-1].shape != y.shape:
             raise ValueError('The dimensions of the y and output layer do not match')
         ############# output layer
         # 1. how much did we miss in the output neuron?
-        error = self.a_matrix[-1] - self.y
+        error = self.a_matrix[-1] - y
 
         # 2. how much does sigma change?
         z_prime = self.a_matrix[-1] * (1 - self.a_matrix[-1])
@@ -106,9 +112,9 @@ class MyNeuralNet:
         #z = np.clip(z, -500, 500)
         return 1 / (1 + np.exp(-z))
 
-    def update(self, w_b_gradient, eta):
+    def update(self, w_b_gradient, eta, mini_batch_size):
         for i in range(len(self.weights)):
-            tmp = self.weights[i] - eta * w_b_gradient[i]
+            tmp = self.weights[i] - eta/mini_batch_size * w_b_gradient[i]
             self.weights[i] = tmp
 
     def setup_test_conf(self):
@@ -136,12 +142,10 @@ if __name__ == '__main__':
     y = np.array(list(map(lambda x: x.flatten(), y)))
 
     nn = MyNeuralNet()
-    nn.input = X
-    nn.y = y
-    nn.add_layer(256)
-    nn.add_layer(256)
+    nn.input = np.array(list(zip(X, y)))
+    nn.add_layer(30)
     nn.add_layer(10)
     try:
-        nn.learn(1500, 0.0001, test_data=test_data)
+        nn.learn(1500, 3, 10, test_data=test_data)
     except Exception as e:
         print(e)
