@@ -1,6 +1,5 @@
 # https://mattmazur.com/2015/03/17/a-step-by-step-backpropagation-example/
 import numpy as np
-import mnist_loader
 import matplotlib.pyplot as plt
 from sklearn import datasets
 
@@ -133,6 +132,7 @@ class MyNeuralNet:
 
 # The main script creates a network that learns MNIST images
 if __name__ == '__main__':
+    import mnist_loader
     training_data, validation_data, test_data = mnist_loader.load_data_wrapper()
     training_data = np.array(training_data)
     X = training_data[:, 0]
