@@ -14,8 +14,8 @@ class SparseAutoencoder(MyNeuralNet):
 
         hidden_layer_neurorn_count = self.weights[0].shape[0]
         self.rho_hat = np.zeros(hidden_layer_neurorn_count)
-        self.rho = np.repeat(0.05, hidden_layer_neurorn_count)
-        self.beta = np.ones(hidden_layer_neurorn_count) * 1
+        self.rho = np.repeat(0.01, hidden_layer_neurorn_count)
+        self.beta = np.ones(hidden_layer_neurorn_count) * 3
         for i in range(epochs):
             np.random.shuffle(self.input)
             mini_batches = [self._input[k:k+mini_batch_size] for k in range(0, len(self._input), mini_batch_size)]
@@ -32,11 +32,10 @@ class SparseAutoencoder(MyNeuralNet):
                 print('Epoch {0}: {1} / {2}'.format(i, self.evaluate(test_data), len(test_data)))
             else:
                 print('Epoch {0} complete'.format(i))
-            print(self.rho_hat)
 
     def update(self, w_b_gradient, eta, mini_batch_size):
         self.weights[0][:, :-1] = self.weights[0][:, :-1] - eta / mini_batch_size * w_b_gradient[0][:, :-1]
-        self.weights[0][:, -1] = self.weights[0][:, -1] - eta / mini_batch_size * self.beta# * (self.rho_hat - self.rho)
+        self.weights[0][:, -1] = self.weights[0][:, -1] - eta / mini_batch_size * self.beta * (self.rho_hat - self.rho)
 
         self.weights[1] = self.weights[1] - eta/mini_batch_size * w_b_gradient[1]
 
@@ -51,7 +50,6 @@ def show_image(input_image, res_image):
     plt.title('Label is {label}'.format(label=label))
     plt.imshow(pixels, cmap='gray')
 
-   # fig = plt.figure(figsize=(28, 28))
     pixels = res_image[0].flatten()
     pixels = pixels.reshape((28, 28))
     # Plot
@@ -77,6 +75,9 @@ def visualize_activations(nn):
 
 
 
+def add_noise(X):
+    noise = np.random.normal(0, 0.3, 28 * 28)
+    return np.clip(X + noise, 0, 1)
 
 # The main script creates a network that learns MNIST images
 if __name__ == '__main__':
@@ -87,25 +88,21 @@ if __name__ == '__main__':
     X = training_data[:, 0]
     X = np.array(list(map(lambda x: x.flatten(), X)))
 
-    y = training_data[:, 1]
-    y = np.array(list(map(lambda x: x.flatten(), y)))
-
-    #X = np.array([[2, 3], [4, 5], [7, 8]])
     nn = SparseAutoencoder()
-    nn.input = np.array(list(zip(X, X)))
-    nn.add_layer(100)
+    nn.input = np.array(list(zip(add_noise(X), X)))
+    nn.add_layer(50)
     nn.add_layer(784)
     try:
-        pass
         nn.learn(10, 3, 10)
-        # nn.classify([[2, 3]])
     except Exception as e:
         print(e)
 
     visualize_activations(nn)
 
-    for image in training_data:
-       res = nn.classify(np.array([image[0].flatten()]))
-       show_image(image, res)
+    for image in test_data:
+        img = np.array([image[0].flatten()])
+        img = add_noise(img)
+        res = nn.classify(img)
+        show_image((img, image[1]), res)
 
 
