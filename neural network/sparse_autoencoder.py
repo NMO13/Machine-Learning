@@ -40,7 +40,7 @@ class SparseAutoencoder(MyNeuralNet):
         self.weights[1] = self.weights[1] - eta/mini_batch_size * w_b_gradient[1]
 
 def show_image(input_image, res_image):
-    fig = plt.figure(figsize=(8, 8))
+    fig = plt.figure(figsize=(10, 10))
     pixels = input_image[0].flatten()
     label = input_image[1]
     pixels = pixels.reshape((28, 28))
@@ -73,10 +73,20 @@ def visualize_activations(nn):
         i = i+1
     plt.show()
 
+def visualize_results(results):
+    fig = plt.figure(figsize=(10, 10))
+
+    i = 1
+    for image in results:
+        img = np.array(image).reshape((28, 28))
+        ax = fig.add_subplot(1, 5, i)
+        plt.imshow(img, cmap='gray')
+        i = i + 1
+    plt.show()
 
 
 def add_noise(X):
-    noise = np.random.normal(0, 0.3, 28 * 28)
+    noise = np.random.normal(0.3, 0.1, 28 * 28)
     return np.clip(X + noise, 0, 1)
 
 # The main script creates a network that learns MNIST images
@@ -93,16 +103,20 @@ if __name__ == '__main__':
     nn.add_layer(50)
     nn.add_layer(784)
     try:
-        nn.learn(10, 3, 10)
+        nn.learn(15, 3, 10)
     except Exception as e:
         print(e)
 
     visualize_activations(nn)
 
-    for image in test_data:
+    res_images = []
+    for image in test_data[:5]:
         img = np.array([image[0].flatten()])
         img = add_noise(img)
         res = nn.classify(img)
+        res_images.append(res)
         show_image((img, image[1]), res)
+
+    visualize_results(res_images)
 
 
