@@ -158,6 +158,7 @@ class TestNeuralNet(unittest.TestCase):
         y = np.array([[0.01, 0.99]])
 
         nn = MyNeuralNet()
+        nn.activation = 'relu'
         nn.input = np.array(list(zip(X, y)))
         nn.setup_test_conf()
         grad_approx = np.array(self.calc_gradients(nn))
@@ -182,7 +183,26 @@ class TestNeuralNet(unittest.TestCase):
         self.assertEqual(int(round(res[0][0])), 0)
         self.assertEqual(int(round(res[1][0])), 1)
 
+    def test_relu(self):
+        # XOR
+        X = np.array([[0, 0],
+                         [0, 1],
+                         [1, 0],
+                         [1, 1]])
 
+        y = np.array([[0, 1],
+                         [1, 0],
+                         [1, 0],
+                         [0, 1]])
+
+        nn = MyNeuralNet()
+        nn.input = np.array(list(zip(X, y)))
+
+        nn.add_layer(10)
+        nn.add_layer(10)
+        nn.add_layer(2)
+        nn.learn(1500, 10, 1, activation='relu')
+        print(nn.classify(X))
 
 if __name__ == '__main__':
     unittest.main()

@@ -25,7 +25,8 @@ class MyNeuralNet:
         self.weights.append(weight_layer)
         self.last_layer_neuron_count = neuron_count
 
-    def learn(self, epochs, eta, mini_batch_size, test_data = None):
+    def learn(self, epochs, eta, mini_batch_size, test_data = None, activation='sigmoid'):
+        self.activation = activation
         if self.last_layer_neuron_count == 0:
             raise ValueError('No output layer specified.')
         for i in range(epochs):
@@ -42,7 +43,6 @@ class MyNeuralNet:
             else:
                 print('Epoch {0} complete'.format(i))
 
-
     def classify(self, input):
         if len(self.weights) == 0:
             raise ValueError('Network is not initialized.')
@@ -50,7 +50,7 @@ class MyNeuralNet:
         for w in self.weights:
             a = np.append(a, [[1] for x in a], axis=1)
             z = np.dot(a, w.T)
-            a = self.sigmoid(z)
+            a = self.sigmoid(z) if self.activation == 'sigmoid' else self.relu(z)
         return a
 
     def feed_forward(self, mini_batch):
@@ -61,7 +61,7 @@ class MyNeuralNet:
             # add bias term
             a = np.append(a, [[1] for x in a], axis=1)
             z = np.dot(a, w.T)
-            a = self.sigmoid(z)
+            a = self.sigmoid(z) if self.activation == 'sigmoid' else self.relu(z)
             self.a_matrix.append(a)
         self.output = a
         #todo
@@ -77,7 +77,7 @@ class MyNeuralNet:
         error = self.a_matrix[-1] - y
 
         # 2. how much does sigma change?
-        z_prime = self.a_matrix[-1] * (1 - self.a_matrix[-1])
+        z_prime = self.a_matrix[-1] * (1 - self.a_matrix[-1]) if self.activation == 'sigmoid' else self.relu_deriv(self.a_matrix[-1])
 
         # 3. calculate delta term for output layer L
         delta_L = (error * z_prime)
@@ -94,7 +94,8 @@ class MyNeuralNet:
         ########### hidden layers
         for n in range(len(self.weights) - 2, -1, -1):
             weights_prev_layer = self.weights[n + 1][:, :-1]
-            delta_l2 = np.dot(last_delta, weights_prev_layer) * (self.a_matrix[n + 1] * (1 - self.a_matrix[n + 1]))
+            z_prime = self.a_matrix[n + 1] * (1 - self.a_matrix[n + 1]) if self.activation == 'sigmoid' else self.relu_deriv(self.a_matrix[n + 1])
+            delta_l2 = np.dot(last_delta, weights_prev_layer) * z_prime
             w_b_gradient[n][:, :-1] = np.dot(delta_l2.T, self.a_matrix[n])
             w_b_gradient[n][:, -1] = np.sum(delta_l2.T, axis=1)
             last_delta = delta_l2
@@ -110,6 +111,12 @@ class MyNeuralNet:
         # see https://stackoverflow.com/questions/23128401/overflow-error-in-neural-networks-implementation
         #z = np.clip(z, -500, 500)
         return 1 / (1 + np.exp(-z))
+
+    def relu(self, z):
+        return z * (z > 0)
+
+    def relu_deriv(self, x):
+        return 1. * (x > 0)
 
     def update(self, w_b_gradient, eta, mini_batch_size):
         for i in range(len(self.weights)):
@@ -146,6 +153,6 @@ if __name__ == '__main__':
     nn.add_layer(30)
     nn.add_layer(10)
     try:
-        nn.learn(1500, 3, 10, test_data=test_data)
+        nn.learn(1500, 3, 10, test_data=test_data, activation='relu')
     except Exception as e:
         print(e)
