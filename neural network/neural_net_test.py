@@ -4,6 +4,9 @@ from my_neural_network import MyNeuralNet
 
 class TestNeuralNet(unittest.TestCase):
 
+    def setup_test_conf(self, nn):
+        nn.weights.append(np.array([[0.15, 0.2, 0.35], [0.25, 0.3, 0.35]]))
+        nn.weights.append(np.array([[0.4, 0.45, 0.6], [0.5, 0.55, 0.6]]))
     # used for gradient checking
     # see https://www.youtube.com/watch?v=P6EtCVrvYPU&list=PLLssT5z_DsK-h9vYZkQkYNWcItqhlRJLN&index=54
     def calc_gradients(self, nn):
@@ -59,7 +62,7 @@ class TestNeuralNet(unittest.TestCase):
         nn.learn(1500, 0.3, 1)
         self.assertEqual(len(nn.weights), 1)
         self.assertEqual(nn.weights[0].shape, (1, 2))
-        self.assertEqual(nn.weights[0][0][0], 1.5807061550409101)
+        self.assertEqual(nn.weights[0][0][0], 1.60050105653771)
 
     def test_backprop_1_iteration(self):
         X = np.array([[0.05, 0.10]])
@@ -67,7 +70,7 @@ class TestNeuralNet(unittest.TestCase):
 
         nn = MyNeuralNet()
         nn.input = np.array(list(zip(X, y)))
-        nn.setup_test_conf()
+        self.setup_test_conf(nn)
         nn.learn(1, 0.5, 1)
         self.assertEqual(nn.weights[0][0][0], 0.14978071613276281)
         self.assertEqual(nn.weights[0][0][1], 0.19956143226552567)
@@ -85,7 +88,7 @@ class TestNeuralNet(unittest.TestCase):
 
         nn = MyNeuralNet()
         nn.input = np.array(list(zip(X, y)))
-        nn.setup_test_conf()
+        self.setup_test_conf(nn)
         nn.learn(1500, 0.5, 1)
         self.assertEqual(nn.weights[0][0][0], 0.1747576240731027)
         self.assertEqual(nn.weights[0][0][1], 0.24951524814620638)
@@ -160,7 +163,7 @@ class TestNeuralNet(unittest.TestCase):
         nn = MyNeuralNet()
         nn.activation = 'relu'
         nn.input = np.array(list(zip(X, y)))
-        nn.setup_test_conf()
+        self.setup_test_conf(nn)
         grad_approx = np.array(self.calc_gradients(nn))
         nn.feed_forward(nn.input[:,0])
         grad = np.array(nn.backward(nn.input[:,1]))
@@ -198,11 +201,16 @@ class TestNeuralNet(unittest.TestCase):
         nn = MyNeuralNet()
         nn.input = np.array(list(zip(X, y)))
 
-        nn.add_layer(10)
-        nn.add_layer(10)
+        nn.add_layer(100)
+        nn.add_layer(100)
         nn.add_layer(2)
-        nn.learn(1500, 10, 1, activation='relu')
-        print(nn.classify(X))
+        nn.learn(2000, 0.01, 1, activation='relu')
+        res = nn.classify(X)
+        print(res)
+        self.assertEqual(int(round(res[0][0])), 0)
+        self.assertEqual(int(round(res[0][1])), 1)
+        self.assertEqual(int(round(res[1][0])), 1)
+        self.assertEqual(int(round(res[1][1])), 0)
 
 if __name__ == '__main__':
     unittest.main()

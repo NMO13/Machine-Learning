@@ -20,7 +20,9 @@ class MyNeuralNet:
 
     def add_layer(self, neuron_count, seed = None):
         np.random.seed(seed)
-        weight_layer = np.random.randn(neuron_count, self.last_layer_neuron_count + 1)
+        weight_layer = np.random.randn(neuron_count, self.last_layer_neuron_count + 1) / neuron_count
+        weight_layer[:, -1] = 0
+
         # add a new layer of neurons and initialize weights randomly
         self.weights.append(weight_layer)
         self.last_layer_neuron_count = neuron_count
@@ -57,10 +59,12 @@ class MyNeuralNet:
         mini_batch = np.stack(mini_batch, axis=0)
         a = np.array(mini_batch, copy=True)
         self.a_matrix = [a]
+        self.z_matrix = [[]] # input layer does not calculate a linear output
         for w in self.weights:
             # add bias term
             a = np.append(a, [[1] for x in a], axis=1)
             z = np.dot(a, w.T)
+            self.z_matrix.append(z)
             a = self.sigmoid(z) if self.activation == 'sigmoid' else self.relu(z)
             self.a_matrix.append(a)
         self.output = a
@@ -77,7 +81,7 @@ class MyNeuralNet:
         error = self.a_matrix[-1] - y
 
         # 2. how much does sigma change?
-        z_prime = self.a_matrix[-1] * (1 - self.a_matrix[-1]) if self.activation == 'sigmoid' else self.relu_deriv(self.a_matrix[-1])
+        z_prime = self.a_matrix[-1] * (1 - self.a_matrix[-1]) if self.activation == 'sigmoid' else self.relu_deriv(self.z_matrix[-1])
 
         # 3. calculate delta term for output layer L
         delta_L = (error * z_prime)
@@ -94,18 +98,13 @@ class MyNeuralNet:
         ########### hidden layers
         for n in range(len(self.weights) - 2, -1, -1):
             weights_prev_layer = self.weights[n + 1][:, :-1]
-            z_prime = self.a_matrix[n + 1] * (1 - self.a_matrix[n + 1]) if self.activation == 'sigmoid' else self.relu_deriv(self.a_matrix[n + 1])
+            z_prime = self.a_matrix[n + 1] * (1 - self.a_matrix[n + 1]) if self.activation == 'sigmoid' else self.relu_deriv(self.z_matrix[n + 1])
             delta_l2 = np.dot(last_delta, weights_prev_layer) * z_prime
             w_b_gradient[n][:, :-1] = np.dot(delta_l2.T, self.a_matrix[n])
             w_b_gradient[n][:, -1] = np.sum(delta_l2.T, axis=1)
             last_delta = delta_l2
 
         return w_b_gradient
-
-
-    def calc_loss(self):
-        res = (self.y - self.output.flatten()) ** 2
-        return sum(res) / 2 / len(self.y)
 
     def sigmoid(self, z):
         # see https://stackoverflow.com/questions/23128401/overflow-error-in-neural-networks-implementation
@@ -122,10 +121,6 @@ class MyNeuralNet:
         for i in range(len(self.weights)):
             tmp = self.weights[i] - eta/mini_batch_size * w_b_gradient[i]
             self.weights[i] = tmp
-
-    def setup_test_conf(self):
-        self.weights.append(np.array([[0.15, 0.2, 0.35], [0.25, 0.3, 0.35]]))
-        self.weights.append(np.array([[0.4, 0.45, 0.6], [0.5, 0.55, 0.6]]))
 
     # method from http://neuralnetworksanddeeplearning.com/chap1.html
     def evaluate(self, test_data):
@@ -150,9 +145,9 @@ if __name__ == '__main__':
 
     nn = MyNeuralNet()
     nn.input = np.array(list(zip(X, y)))
-    nn.add_layer(30)
+    nn.add_layer(100)
     nn.add_layer(10)
     try:
-        nn.learn(1500, 3, 10, test_data=test_data, activation='relu')
+        nn.learn(1500, 0.01, 30, test_data=test_data, activation='relu')
     except Exception as e:
         print(e)
