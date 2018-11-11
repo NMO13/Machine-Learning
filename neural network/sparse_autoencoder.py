@@ -6,11 +6,12 @@ class SparseAutoencoder(MyNeuralNet):
     def __init__(self):
         super(SparseAutoencoder, self).__init__()
 
-    def learn(self, epochs, eta, mini_batch_size, test_data = None):
+    def learn(self, epochs, eta, mini_batch_size, test_data = None, activation='sigmoid'):
         if len(self.weights) != 2:
             raise ValueError('Exactly 3 layers are required.')
         if self.last_layer_neuron_count == 0:
             raise ValueError('No output layer specified.')
+        self.activation = activation
 
         hidden_layer_neurorn_count = self.weights[0].shape[0]
         self.rho_hat = np.zeros(hidden_layer_neurorn_count)
@@ -103,20 +104,19 @@ if __name__ == '__main__':
     nn.add_layer(50)
     nn.add_layer(784)
     try:
-        nn.learn(15, 3, 10)
+        nn.learn(50, 0.01, 256, activation='relu')
     except Exception as e:
         print(e)
 
     visualize_activations(nn)
 
     res_images = []
-    for image in test_data[:5]:
+    np.random.shuffle(test_data)
+    for image in test_data[:30]:
         img = np.array([image[0].flatten()])
         img = add_noise(img)
         res = nn.classify(img)
         res_images.append(res)
         show_image((img, image[1]), res)
-
-    visualize_results(res_images)
 
 
