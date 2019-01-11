@@ -18,11 +18,11 @@ class MouseWorld:
                 for action in self.actions:
                     self.Q[(i, j)][action] = 0
 
-    def print_values(self):
+    def print_values(self, values):
         for i in range(self.width):
             print("---------------------------")
             for j in range(self.height):
-                v = self.rewards.get((i, j), 0)
+                v = values.get((i, j), 0)
                 if v >= 0:
                     print(" %.2f|" % v, end="")
                 else:
@@ -62,13 +62,13 @@ class MouseWorld:
             return
         max_Q_prime = max(stats.values())
         Q_s_a = self.Q[self.current_state][action]
-        self.Q[self.current_state][action] = Q_s_a + self.alpha *(self.rewards[next_state] + self.gamma*(max_Q_prime - Q_s_a))
+        self.Q[self.current_state][action] = Q_s_a + self.alpha *(self.rewards[next_state] + self.gamma * max_Q_prime - Q_s_a)
         self.current_state = next_state
 
 
 if __name__ == "__main__":
-    mw = MouseWorld(2, 3, {(0, 1): 3, (1, 0): 3, (1, 2): 10, (1, 1): -3})
-    mw.print_values()
+    mw = MouseWorld(2, 3, {(0, 1): 0, (1, 0): 0, (1, 2): 1, (1, 1): -1})
+    mw.print_values(mw.rewards)
     for i in range(10000):
         mw.current_state = (0, 0)
         while not mw.game_over():
