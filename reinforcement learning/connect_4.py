@@ -3,8 +3,8 @@ import random
 import collections
 
 class Game:
-    ROWS = 3
-    COLUMNS = 3
+    ROWS = 4
+    COLUMNS = 4
     TILES_TO_WIN = 3
     RED = 1
     YELLOW = -1
@@ -13,6 +13,20 @@ class Game:
     def __init__(self):
         self.board = np.zeros( (Game.ROWS, Game.COLUMNS) )
         self.actions = np.arange(0, Game.COLUMNS)
+
+    def draw_board(self):
+        for i in range(Game.ROWS):
+            print('----' * Game.COLUMNS)
+            for j in range(Game.COLUMNS):
+                print("  ", end="")
+                if self.board[i, j] == Game.RED:
+                    print("x ", end="")
+                elif self.board[i, j] == Game.YELLOW:
+                    print("o ", end="")
+                else:
+                    print("  ", end="")
+            print("")
+        print('----' * Game.COLUMNS)
 
     def reset(self, p1, p2):
         self.board = np.zeros((Game.ROWS, Game.COLUMNS))
@@ -32,7 +46,7 @@ class Game:
 
         prev_state = 0
         while not game_over:
-            reward, action, game_over, valid_move = cur_player.move(epsilon, self)
+            reward, action, game_over, valid_move = cur_player.move(self)
             if valid_move:
                 cur_player.states_actions_rewards.append((prev_state, action, reward))
                 self._other_player(cur_player, p1, p2).states_actions_rewards.append((prev_state, action, -reward))
@@ -41,6 +55,8 @@ class Game:
                 self._other_player(cur_player, p1, p2).states_actions_rewards.append((prev_state, action, reward))
             cur_player = p2 if cur_player == p1 else p1
             prev_state = self.get_state()
+            if debug:
+                self.draw_board()
 
 
         return self.create_sar(p1.states_actions_rewards), self.create_sar(p2.states_actions_rewards)
@@ -168,6 +184,7 @@ class Game:
         return valid_actions
 
 class Player:
+    epsilon = 0.2
     def __init__(self, sym):
         self.sym = sym
         self.Q = {}
@@ -175,10 +192,10 @@ class Player:
         self.policy = {}
         self.return_dict = {}
 
-    def move(self, eps, env):
+    def move(self, env):
         number = np.random.uniform()
         action = None
-        if number <= eps:
+        if number <= self.epsilon:
             # explore
             valid_actions = env.get_valid_actions()
             action = random.choice(valid_actions)
@@ -186,6 +203,8 @@ class Player:
             # exploit
             action = self.policy.get(env.get_state(), None)
             if action == None:
+                if debug:
+                    print('Unknown state')
                 valid_actions = env.get_valid_actions()
                 action = random.choice(valid_actions)
 
@@ -205,20 +224,35 @@ class Player:
             action = max(self.Q[state].keys(), key=(lambda key: self.Q[state][key]))
             self.policy[state] = action
 
+class HumanPlayer(Player):
+    epsilon = 0
+    def move(self, env):
+        valid_actions = env.get_valid_actions()
+        while True:
+            # break if we make a legal move
+            move = input("Enter column: ")
+            if int(move) in valid_actions:
+                env.set_sym(int(move), self.sym)
+                break
+        game_over, reward = env.game_over(self.sym)
+        return reward, 0, game_over, True
+
+
 if __name__ == "__main__":
+    debug = False
     import time
     start = time.time()
     mw = Game()
     # Exploration parameters
-    epsilon = 0.2  # Exploration rate
-    max_epsilon = 1.0  # Exploration probability at start
-    min_epsilon = 0.01  # Minimum exploration probability
-    decay_rate = 0.005  # Exponential decay rate for exploration prob
+    #epsilon = 0.2  # Exploration rate
+    #max_epsilon = 1.0  # Exploration probability at start
+    #min_epsilon = 0.01  # Minimum exploration probability
+    #decay_rate = 0.005  # Exponential decay rate for exploration prob
 
     p1 = Player(Game.RED)
     p2 = Player(Game.YELLOW)
 
-    for episode in range(10000):
+    for episode in range(100000):
         if episode % 100 == 0:
             print(episode)
         sar1, sar2 = mw.play(p1, p2)
@@ -230,5 +264,16 @@ if __name__ == "__main__":
     end = time.time()
     print('Finished')
     print('time: {}'.format(end - start))
+
+    p1 = HumanPlayer(Game.RED)
+    p2.epsilon = 0
+
+    debug = True
+    while True:
+        mw.play(p1, p2)
+        answer = input("Play again? [Y/n]: ")
+        if answer and answer.lower()[0] == 'n':
+            break
+
 
 
