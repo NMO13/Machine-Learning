@@ -44,7 +44,9 @@ class Game:
         cur_player = p1
         game_over = False
 
-        prev_state = 0
+        start_states = list(p1.Q)
+        prev_state = start_states[np.random.choice(len(start_states))] if len(start_states) > 0 else 0
+        self.set_board(prev_state)
         while not game_over:
             reward, action, game_over, valid_move = cur_player.move(self)
             if valid_move:
@@ -174,7 +176,28 @@ class Game:
                     v = 2
                 h += (3 ** k) * v
                 k += 1
+        board_copy = np.copy(self.board)
+        self.set_board(h)
+        assert np.array_equal(board_copy.all(), self.board.all())
         return h
+
+    def set_board(self, state):
+        import math
+        vals = np.repeat(0, self.COLUMNS * self.ROWS)
+        i = 0
+        while state > 0:
+            vals[i] = state % 3
+            state = math.floor(state / 3)
+            i = i + 1
+        for i in range(self.ROWS):
+            for j in range(self.COLUMNS):
+                val =  vals[j + i * Game.ROWS]
+                if val == 0:
+                    self.board[i][j] = 0
+                elif val == 1:
+                    self.board[i][j] = self.RED
+                elif val == 2:
+                    self.board[i][j] = self.YELLOW
 
     def get_valid_actions(self):
         valid_actions = []
@@ -184,7 +207,6 @@ class Game:
         return valid_actions
 
 class Player:
-    epsilon = 0.2
     def __init__(self, sym):
         self.sym = sym
         self.Q = {}
@@ -195,7 +217,7 @@ class Player:
     def move(self, env):
         number = np.random.uniform()
         action = None
-        if number <= self.epsilon:
+        if number <= epsilon:
             # explore
             valid_actions = env.get_valid_actions()
             action = random.choice(valid_actions)
@@ -239,22 +261,24 @@ class HumanPlayer(Player):
 
 
 if __name__ == "__main__":
+    # Exploration parameters
+    max_epsilon = 0.9  # Exploration probability at start
+    min_epsilon = 0.05  # Minimum exploration probability
+    decay_rate = 200  # Exponential decay rate for exploration prob
+
     debug = False
     import time
     start = time.time()
     mw = Game()
-    # Exploration parameters
-    #epsilon = 0.2  # Exploration rate
-    #max_epsilon = 1.0  # Exploration probability at start
-    #min_epsilon = 0.01  # Minimum exploration probability
-    #decay_rate = 0.005  # Exponential decay rate for exploration prob
 
     p1 = Player(Game.RED)
     p2 = Player(Game.YELLOW)
 
     for episode in range(100000):
-        if episode % 100 == 0:
+        epsilon = 0.2#min_epsilon + (max_epsilon - min_epsilon) * np.exp(-episode / decay_rate)
+        if episode % 200 == 0:
             print(episode)
+            print('Policy count for iteration {0}: {1}'.format(episode, len(p1.policy)))
         sar1, sar2 = mw.play(p1, p2)
         p1.update_q_and_policy(sar1)
         p2.update_q_and_policy(sar2)
