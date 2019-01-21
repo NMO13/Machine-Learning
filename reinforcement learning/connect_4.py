@@ -3,8 +3,8 @@ import random
 import collections
 
 class Game:
-    ROWS = 4
-    COLUMNS = 4
+    ROWS = 3
+    COLUMNS = 3
     TILES_TO_WIN = 3
     RED = 1
     YELLOW = -1
@@ -39,19 +39,37 @@ class Game:
             return p2
         return p1
 
+    def get_cur_player(self, p1, p2):
+        r_counter = 0
+        y_counter = 0
+        for i in range(Game.ROWS):
+            for j in range(Game.COLUMNS):
+                if self.board[i][j] == Game.RED:
+                    r_counter += 1
+                elif self.board[i][j] == Game.YELLOW:
+                    y_counter += 1
+
+        if r_counter > y_counter:
+            return p2
+        elif r_counter < y_counter:
+            return p1
+
+        arr = [p1, p2]
+        return arr[np.random.choice(len(arr))]
+
     def play(self, p1, p2):
         self.reset(p1, p2)
-        cur_player = p1
         game_over = False
 
         start_states = list(p1.Q)
         prev_state = start_states[np.random.choice(len(start_states))] if len(start_states) > 0 else 0
         self.set_board(prev_state)
+        cur_player = self.get_cur_player(p1, p2)
         while not game_over:
             reward, action, game_over, valid_move = cur_player.move(self)
             if valid_move:
                 cur_player.states_actions_rewards.append((prev_state, action, reward))
-                self._other_player(cur_player, p1, p2).states_actions_rewards.append((prev_state, action, -reward))
+                self._other_player(cur_player, p1, p2).states_actions_rewards.append((prev_state, action, -1))
             else:
                 cur_player.states_actions_rewards.append((prev_state, action, reward))
                 self._other_player(cur_player, p1, p2).states_actions_rewards.append((prev_state, action, reward))
@@ -59,6 +77,7 @@ class Game:
             prev_state = self.get_state()
             if debug:
                 self.draw_board()
+                print(self.get_state())
 
 
         return self.create_sar(p1.states_actions_rewards), self.create_sar(p2.states_actions_rewards)
@@ -262,9 +281,9 @@ class HumanPlayer(Player):
 
 if __name__ == "__main__":
     # Exploration parameters
-    max_epsilon = 0.9  # Exploration probability at start
-    min_epsilon = 0.05  # Minimum exploration probability
-    decay_rate = 200  # Exponential decay rate for exploration prob
+    max_epsilon = 1  # Exploration probability at start
+    min_epsilon = 0.1  # Minimum exploration probability
+    decay_rate = 2000  # Exponential decay rate for exploration prob
 
     debug = False
     import time
@@ -275,9 +294,10 @@ if __name__ == "__main__":
     p2 = Player(Game.YELLOW)
 
     for episode in range(100000):
-        epsilon = 0.2#min_epsilon + (max_epsilon - min_epsilon) * np.exp(-episode / decay_rate)
+        epsilon = min_epsilon + (max_epsilon - min_epsilon) * np.exp(-episode / decay_rate)
         if episode % 200 == 0:
             print(episode)
+            print(epsilon)
             print('Policy count for iteration {0}: {1}'.format(episode, len(p1.policy)))
         sar1, sar2 = mw.play(p1, p2)
         p1.update_q_and_policy(sar1)
@@ -290,7 +310,7 @@ if __name__ == "__main__":
     print('time: {}'.format(end - start))
 
     p1 = HumanPlayer(Game.RED)
-    p2.epsilon = 0
+    epsilon = 0
 
     debug = True
     while True:
