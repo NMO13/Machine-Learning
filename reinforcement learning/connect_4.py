@@ -62,9 +62,9 @@ class Game:
         game_over = False
 
         start_states = list(p1.Q)
-        prev_state = start_states[np.random.choice(len(start_states))] if len(start_states) > 0 else 0
-        self.set_board(prev_state)
-        cur_player = self.get_cur_player(p1, p2)
+        prev_state = 0#start_states[np.random.choice(len(start_states))] if len(start_states) > 0 else 0
+        #self.set_board(prev_state)
+        cur_player = p1#self.get_cur_player(p1, p2)
         while not game_over:
             reward, action, game_over, valid_move = cur_player.move(self)
             if valid_move:
@@ -293,7 +293,7 @@ if __name__ == "__main__":
     p1 = Player(Game.RED)
     p2 = Player(Game.YELLOW)
 
-    for episode in range(20000):
+    for episode in range(10000):
         epsilon = min_epsilon + (max_epsilon - min_epsilon) * np.exp(-episode / decay_rate)
         if episode % 200 == 0:
             print('Episode:', str(episode))
