@@ -69,7 +69,7 @@ class Game:
             reward, action, game_over, valid_move = cur_player.move(self)
             if valid_move:
                 cur_player.states_actions_rewards.append((prev_state, action, reward))
-                self._other_player(cur_player, p1, p2).states_actions_rewards.append((prev_state, action, -1))
+                self._other_player(cur_player, p1, p2).states_actions_rewards.append((prev_state, action, -reward))
             else:
                 cur_player.states_actions_rewards.append((prev_state, action, reward))
                 self._other_player(cur_player, p1, p2).states_actions_rewards.append((prev_state, action, reward))
@@ -282,7 +282,7 @@ class HumanPlayer(Player):
 if __name__ == "__main__":
     # Exploration parameters
     max_epsilon = 1  # Exploration probability at start
-    min_epsilon = 0.1  # Minimum exploration probability
+    min_epsilon = 0.2  # Minimum exploration probability
     decay_rate = 2000  # Exponential decay rate for exploration prob
 
     debug = False
@@ -293,11 +293,11 @@ if __name__ == "__main__":
     p1 = Player(Game.RED)
     p2 = Player(Game.YELLOW)
 
-    for episode in range(100000):
+    for episode in range(20000):
         epsilon = min_epsilon + (max_epsilon - min_epsilon) * np.exp(-episode / decay_rate)
         if episode % 200 == 0:
-            print(episode)
-            print(epsilon)
+            print('Episode:', str(episode))
+            print('Epsilon: ' + str(epsilon))
             print('Policy count for iteration {0}: {1}'.format(episode, len(p1.policy)))
         sar1, sar2 = mw.play(p1, p2)
         p1.update_q_and_policy(sar1)
