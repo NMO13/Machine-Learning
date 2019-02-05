@@ -2,6 +2,7 @@ import numpy as np
 import random
 class MouseWorld:
     def __init__(self, width, height, local_rewards):
+        self.current_state = ()
         self.width = width
         self.height = height
         self.alpha = 0.1
