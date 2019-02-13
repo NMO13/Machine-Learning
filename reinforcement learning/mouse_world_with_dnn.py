@@ -4,6 +4,11 @@ from neural_network.my_neural_network import MyNeuralNet
 import random
 import numpy as np
 from collections import deque# Ordered collection with ends
+
+# TensorFlow and tf.keras
+import tensorflow as tf
+from tensorflow import keras
+
 memory_size = 1000000          # Number of experiences the Memory can keep
 batch_size = 64
 pretrain_length = batch_size
@@ -19,80 +24,12 @@ class DQNetwork:
             # *state_size means that we take each elements of state_size in tuple hence is like if we wrote
             # [None, 84, 84, 4]
             self.inputs_ = tf.placeholder(tf.float32, [None, *state_size], name="inputs")
-            self.actions_ = tf.placeholder(tf.float32, [None, 3], name="actions_")
+            self.actions_ = tf.placeholder(tf.float32, [None, 4], name="actions_")
 
             # Remember that target_Q is the R(s,a) + ymax Qhat(s', a')
             self.target_Q = tf.placeholder(tf.float32, [None], name="target")
 
-            """
-            First convnet:
-            CNN
-            BatchNormalization
-            ELU
-            """
-            # Input is 84x84x4
-            self.conv1 = tf.layers.conv2d(inputs=self.inputs_,
-                                          filters=32,
-                                          kernel_size=[8, 8],
-                                          strides=[4, 4],
-                                          padding="VALID",
-                                          kernel_initializer=tf.contrib.layers.xavier_initializer_conv2d(),
-                                          name="conv1")
 
-            self.conv1_batchnorm = tf.layers.batch_normalization(self.conv1,
-                                                                 training=True,
-                                                                 epsilon=1e-5,
-                                                                 name='batch_norm1')
-
-            self.conv1_out = tf.nn.elu(self.conv1_batchnorm, name="conv1_out")
-            ## --> [20, 20, 32]
-
-            """
-            Second convnet:
-            CNN
-            BatchNormalization
-            ELU
-            """
-            self.conv2 = tf.layers.conv2d(inputs=self.conv1_out,
-                                          filters=64,
-                                          kernel_size=[4, 4],
-                                          strides=[2, 2],
-                                          padding="VALID",
-                                          kernel_initializer=tf.contrib.layers.xavier_initializer_conv2d(),
-                                          name="conv2")
-
-            self.conv2_batchnorm = tf.layers.batch_normalization(self.conv2,
-                                                                 training=True,
-                                                                 epsilon=1e-5,
-                                                                 name='batch_norm2')
-
-            self.conv2_out = tf.nn.elu(self.conv2_batchnorm, name="conv2_out")
-            ## --> [9, 9, 64]
-
-            """
-            Third convnet:
-            CNN
-            BatchNormalization
-            ELU
-            """
-            self.conv3 = tf.layers.conv2d(inputs=self.conv2_out,
-                                          filters=128,
-                                          kernel_size=[4, 4],
-                                          strides=[2, 2],
-                                          padding="VALID",
-                                          kernel_initializer=tf.contrib.layers.xavier_initializer_conv2d(),
-                                          name="conv3")
-
-            self.conv3_batchnorm = tf.layers.batch_normalization(self.conv3,
-                                                                 training=True,
-                                                                 epsilon=1e-5,
-                                                                 name='batch_norm3')
-
-            self.conv3_out = tf.nn.elu(self.conv3_batchnorm, name="conv3_out")
-            ## --> [3, 3, 128]
-
-            self.flatten = tf.layers.flatten(self.conv3_out)
-            ## --> [1152]
 
             self.fc = tf.layers.dense(inputs=self.flatten,
                                       units=512,
@@ -136,7 +73,7 @@ memory = Memory(max_size=memory_size)
 class MouseWorld2(MouseWorld):
     def __init__(self, width, height, local_rewards):
         ### MODEL HYPERPARAMETERS
-        state_size = [84, 84, 4]  # Our input is a stack of 4 frames hence 84x84x4 (Width, height, channels)
+        state_size = [1, 64, 2]  # Our input is a stack of 4 frames hence 84x84x4 (Width, height, channels)
         action_size = 4
         learning_rate = 0.0002  # Alpha (aka learning rate)
         # Reset the graph
@@ -259,7 +196,7 @@ if __name__ == "__main__":
             dones_mb = np.array([each[4] for each in batch])
 
             # Get Q values for next_state
-            Qs_next_state = sess.run(DQNetwork.output, feed_dict={DQNetwork.inputs_: next_states_mb})
+            Qs_next_state = sess.run(mw.net.output, feed_dict={mw.net.inputs_: next_states_mb})
 
             target_Qs_batch = []
 
