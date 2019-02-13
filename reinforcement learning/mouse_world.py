@@ -19,6 +19,15 @@ class MouseWorld:
                 for action in self.actions:
                     self.Q[(i, j)][action] = 0
 
+                if i == 0:
+                    del self.Q[(i, j)]['U']
+                if i == self.height - 1:
+                    del self.Q[(i, j)]['D']
+                if j == 0:
+                    del self.Q[(i, j)]['L']
+                if j == self.width - 1:
+                    del self.Q[(i, j)]['R']
+
     def print_values(self, values):
         for i in range(self.height):
             print("---------------------------")
