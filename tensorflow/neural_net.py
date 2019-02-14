@@ -33,19 +33,19 @@ keep_prob=tf.placeholder(tf.float32,name='drop_prob')
 
 W1 = tf.Variable(tf.truncated_normal([n_features, n_neurons_in_h1], mean=0, stddev=1 / np.sqrt(n_features)), name='weights1')
 b1 = tf.Variable(tf.truncated_normal([n_neurons_in_h1],mean=0, stddev=1 / np.sqrt(n_features)), name='biases1')
-y1 = tf.nn.sigmoid((tf.matmul(X, W1)+b1), name='activationLayer1')
+y1 = tf.nn.relu((tf.matmul(X, W1)+b1), name='activationLayer1')
 
 #network parameters(weights and biases) are set and initialized(Layer2)
 W2 = tf.Variable(tf.random_normal([n_neurons_in_h1, n_neurons_in_h2],mean=0,stddev=1/np.sqrt(n_features)),name='weights2')
 b2 = tf.Variable(tf.random_normal([n_neurons_in_h2],mean=0,stddev=1/np.sqrt(n_features)),name='biases2')
 #activation function(sigmoid)
-y2 = tf.nn.sigmoid((tf.matmul(y1,W2)+b2),name='activationLayer2')
+y2 = tf.nn.relu((tf.matmul(y1,W2)+b2),name='activationLayer2')
 
 #output layer weights and biasies
 Wo = tf.Variable(tf.random_normal([n_neurons_in_h2, n_classes], mean=0, stddev=1/np.sqrt(n_features)), name='weightsOut')
 bo = tf.Variable(tf.random_normal([n_classes], mean=0, stddev=1/np.sqrt(n_features)), name='biasesOut')
 #activation function(softmax)
-a = tf.nn.sigmoid((tf.matmul(y2, Wo) + bo), name='activationOutputLayer')
+a = tf.nn.relu((tf.matmul(y2, Wo) + bo), name='activationOutputLayer')
 
 #cost function
 #cross_entropy = tf.reduce_mean(-tf.reduce_sum(Y * tf.log(a),reduction_indices=[1]))
