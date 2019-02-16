@@ -51,7 +51,7 @@ a = tf.nn.relu((tf.matmul(y2, Wo) + bo), name='activationOutputLayer')
 #cross_entropy = tf.reduce_mean(-tf.reduce_sum(Y * tf.log(a),reduction_indices=[1]))
 error = tf.square(Y - a)
 #optimizer
-train_step = tf.train.GradientDescentOptimizer(learning_rate).minimize(error)
+train_step = tf.train.AdagradOptimizer(learning_rate).minimize(error)
 
 #compare predicted value from network with the expected value/target
 correct_prediction = tf.equal(tf.argmax(a, 1), tf.argmax(Y, 1))
