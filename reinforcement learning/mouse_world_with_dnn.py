@@ -53,7 +53,7 @@ class DQNetwork:
 
         self.loss = tf.reduce_mean(tf.square(self.target_Q - self.Q))
 
-        self.optimizer = tf.train.RMSPropOptimizer(self.learning_rate).minimize(self.loss)
+        self.optimizer = tf.train.GradientDescentOptimizer(self.learning_rate).minimize(self.loss)
         # cost function
         #l = tf.losses.mean_squared_error(self.Y, self.output)
         # optimizer
@@ -106,7 +106,7 @@ class MouseWorld2(MouseWorld):
         if number <= eps:
             # explore
             action = random.choice(list(self.Q[self.current_state].keys()))
-            return action
+            return action, eps
         else:
             # exploit
             stats = sess.run(self.net.output, feed_dict={mw.net.X: np.array([self.current_state])})
@@ -122,13 +122,13 @@ class MouseWorld2(MouseWorld):
                 stats[3] = -10000
             action = np.argmax(stats)
             if action == 0:
-                return 'U'
+                return 'U', eps
             elif action == 1:
-                return 'D'
+                return 'D', eps
             elif action == 2:
-                return 'L'
+                return 'L', eps
             else:
-                return 'R'
+                return 'R', eps
 
     def make_action(self, action):
         i = self.current_state[0]
@@ -157,7 +157,7 @@ class MouseWorld2(MouseWorld):
                 state = self.current_state
 
             # Random action
-            action = self.get_action(1, 0, 0, 0)
+            action, _ = self.get_action(1, 0, 0, 0)
 
             # Get the rewards
             reward = self.make_action(action)
@@ -205,7 +205,7 @@ class MouseWorld2(MouseWorld):
 if __name__ == "__main__":
     import time
     start = time.time()
-    mw = MouseWorld2(5, 5, {(0, 1): 0, (1, 0): 0, (4, 4): 1, (1, 1): -1, (3, 4): -1, (0, 2): -1})
+    mw = MouseWorld2(5, 5, {(4, 4): 100})
     mw.print_values(mw.rewards)
     # Q learning hyperparameters
     gamma = 0.95  # Discounting rate
@@ -220,58 +220,62 @@ if __name__ == "__main__":
         sess.run(tf.global_variables_initializer())
 
         decay_step = 0
-        for episode in range(700):
+        loss = 0
+        for episode in range(1000):
             print('Episode: ' + str(episode))
             # Initialize the rewards of the episode
             episode_rewards = []
             # reset mouse
-            mw.current_state = mw.get_random_state()
-
-            while not mw.game_over():
+            mw.current_state = (0, 0)
+            step = 0
+            while (not mw.game_over()) and step < 100:
                 # Increase decay_step
                 decay_step += 1
-
+                step += 1
                 state = mw.current_state
-                action = mw.get_action(explore_start, explore_stop, decay_rate, decay_step)
+                action, explore_probability = mw.get_action(explore_start, explore_stop, decay_rate, decay_step)
                 reward = mw.make_action(action)
                 # Add the reward to total reward
                 episode_rewards.append(reward)
                 next_state = mw.current_state
 
                 if mw.game_over():
-                    memory.add(state, action, reward, (-1, -1), True)
+                    memory.add(state, action, reward, next_state, True)
+                    print('Total reward: {}'.format(np.sum(episode_rewards)))
+                    print('Explore P: {:.4f}'.format(explore_probability))
+                    print('Training loss {}'.format(loss))
                 else:
                     memory.add(state, action, reward, next_state, False)
 
-            batch = memory.sample(batch_size)
-            states_mb = np.array([each[0] for each in batch], ndmin=3)
-            actions_mb = np.array([each[1] for each in batch])
-            rewards_mb = np.array([each[2] for each in batch])
-            next_states_mb = np.array([each[3] for each in batch], ndmin=3)
-            dones_mb = np.array([each[4] for each in batch])
+                batch = memory.sample(batch_size)
+                states_mb = np.array([each[0] for each in batch], ndmin=3)
+                actions_mb = np.array([each[1] for each in batch])
+                rewards_mb = np.array([each[2] for each in batch])
+                next_states_mb = np.array([each[3] for each in batch], ndmin=3)
+                dones_mb = np.array([each[4] for each in batch])
 
-            # Get Q values for next_state
-            Qs_next_state = sess.run(mw.net.output, feed_dict={mw.net.X: next_states_mb[0]})
+                # Get Q values for next_state
+                Qs_next_state = sess.run(mw.net.output, feed_dict={mw.net.X: next_states_mb[0]})
 
-            target_Qs_batch = []
+                target_Qs_batch = []
 
-            for i in range(0, len(batch)):
-                terminal = dones_mb[i]
+                for i in range(0, len(batch)):
+                    terminal = dones_mb[i]
 
-                # If we are in a terminal state, only equals reward
-                if terminal:
-                    target_Qs_batch.append(rewards_mb[i])
+                    # If we are in a terminal state, only equals reward
+                    if terminal:
+                        target_Qs_batch.append(rewards_mb[i])
 
-                else:
-                    target = rewards_mb[i] + gamma * np.max(Qs_next_state[i])
-                    target_Qs_batch.append(target)
+                    else:
+                        target = rewards_mb[i] + gamma * np.max(Qs_next_state[i])
+                        target_Qs_batch.append(target)
 
-            targets_mb = np.array([each for each in target_Qs_batch])
-            cur_state_mb = states_mb
-            sess.run([mw.net.optimizer],
-                     feed_dict={mw.net.X: states_mb[0],
-                                mw.net.target_Q: targets_mb,
-                                mw.net.actions_: actions_mb})
+                targets_mb = np.array([each for each in target_Qs_batch])
+                cur_state_mb = states_mb
+                loss, _ = sess.run([mw.net.loss, mw.net.optimizer],
+                         feed_dict={mw.net.X: states_mb[0],
+                                    mw.net.target_Q: targets_mb,
+                                    mw.net.actions_: actions_mb})
 
         for k, v in mw.Q.items():
             stats = sess.run(mw.net.output, feed_dict={mw.net.X: np.array([k])})

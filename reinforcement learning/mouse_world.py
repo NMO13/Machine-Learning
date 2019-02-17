@@ -14,7 +14,7 @@ class MouseWorld:
         self.Q = {}
         for i in range(self.height):
             for j in range(self.width):
-                self.rewards[(i, j)] = local_rewards.get((i, j), 0)
+                self.rewards[(i, j)] = local_rewards.get((i, j), -1)
                 self.Q[(i, j)] = {}
                 for action in self.actions:
                     self.Q[(i, j)][action] = 0
@@ -30,7 +30,7 @@ class MouseWorld:
 
     def print_values(self, values):
         for i in range(self.height):
-            print("---------------------------")
+            print("-----------------------------")
             for j in range(self.width):
                 v = values.get((i, j), 0)
                 if v >= 0:
@@ -41,7 +41,7 @@ class MouseWorld:
 
     def print_best_policy(self):
         for i in range(self.height):
-            print("---------------------------")
+            print("-----------------------------")
             for j in range(self.width):
                 stats = self.Q[(i, j)]
                 action = max(stats.keys(), key=(lambda key: stats[key]))
@@ -49,7 +49,7 @@ class MouseWorld:
             print("")
 
     def game_over(self):
-        return self.current_state == (1, 1) or self.current_state == (1, 2)\
+        return self.current_state == (1, 1) or self.current_state == (4, 4)\
                or self.current_state == (3, 4) or self.current_state == (0, 2)
 
     def move(self, eps):
