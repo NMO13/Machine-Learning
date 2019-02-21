@@ -205,7 +205,7 @@ class MouseWorld2(MouseWorld):
 if __name__ == "__main__":
     import time
     start = time.time()
-    mw = MouseWorld2(5, 5, {(4, 4): 100})
+    mw = MouseWorld2(5, 5, {(4, 4): 100, (1, 1): -1, (3, 4): -1, (0, 2): -1})
     mw.print_values(mw.rewards)
     # Q learning hyperparameters
     gamma = 0.95  # Discounting rate
@@ -213,7 +213,7 @@ if __name__ == "__main__":
     explore_start = 1.0  # exploration probability at start
     explore_stop = 0.01  # minimum exploration probability
     decay_rate = 0.0001
-
+    loss_list = []
     mw.pretrain(memory)
     with tf.Session() as sess:
         # Initialize the variables
@@ -272,10 +272,15 @@ if __name__ == "__main__":
 
                 targets_mb = np.array([each for each in target_Qs_batch])
                 cur_state_mb = states_mb
-                loss, _ = sess.run([mw.net.loss, mw.net.optimizer],
+                loss, Q, _ = sess.run([mw.net.loss, mw.net.Q, mw.net.optimizer],
                          feed_dict={mw.net.X: states_mb[0],
                                     mw.net.target_Q: targets_mb,
                                     mw.net.actions_: actions_mb})
+                loss_list.append(loss)
+
+        import matplotlib.pyplot as plt
+        plt.plot(loss_list)
+        plt.show()
 
         for k, v in mw.Q.items():
             stats = sess.run(mw.net.output, feed_dict={mw.net.X: np.array([k])})
