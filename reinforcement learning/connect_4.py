@@ -1,8 +1,6 @@
-from lib import wrappers
-from lib import dqn_model
-
 import argparse
 import time
+import gym.spaces
 import numpy as np
 import collections
 
@@ -20,7 +18,7 @@ GAMMA = 0.99
 BATCH_SIZE = 32
 REPLAY_SIZE = 10000
 LEARNING_RATE = 1e-4
-SYNC_TARGET_FRAMES = 100
+SYNC_TARGET_FRAMES = 500
 REPLAY_START_SIZE = 500
 
 EPSILON_DECAY_LAST_FRAME = 10**5
@@ -392,7 +390,7 @@ if __name__ == "__main__":
             done, reward = p2.play_step(p1, epsilon, device=device)
             current_player = p1
 
-        if done and current_player is p2:
+        if done:
             total_rewards.append(reward)
             speed = (frame_idx - ts_frame) / (time.time() - ts)
             ts_frame = frame_idx
@@ -413,7 +411,7 @@ if __name__ == "__main__":
                     print("Best mean reward updated %.3f -> %.3f, model saved" % (best_mean_reward, mean_reward))
                 best_mean_reward = mean_reward
             current_player = p1
-            if len(total_rewards) > 1000:
+            if len(total_rewards) > 3000:
                 print("Solved in %d frames!" % frame_idx)
                 break
 
