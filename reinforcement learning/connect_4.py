@@ -18,10 +18,10 @@ GAMMA = 0.99
 BATCH_SIZE = 32
 REPLAY_SIZE = 10000
 LEARNING_RATE = 1e-4
-SYNC_TARGET_FRAMES = 500
+SYNC_TARGET_FRAMES = 5000
 REPLAY_START_SIZE = 500
 
-EPSILON_DECAY_LAST_FRAME = 10**5
+EPSILON_DECAY_LAST_FRAME = 50000
 EPSILON_START = 1.0
 EPSILON_FINAL = 0.02
 
@@ -384,10 +384,10 @@ if __name__ == "__main__":
         epsilon = max(EPSILON_FINAL, EPSILON_START - frame_idx / EPSILON_DECAY_LAST_FRAME)
 
         if current_player is p1:
-            done, reward = p1.play_step(p2, epsilon, device=device)
+            reward, done = p1.play_step(p2, epsilon, device=device)
             current_player = p2
         else:
-            done, reward = p2.play_step(p1, epsilon, device=device)
+            reward, done = p2.play_step(p1, 1, device=device)
             current_player = p1
 
         if done:
@@ -411,7 +411,7 @@ if __name__ == "__main__":
                     print("Best mean reward updated %.3f -> %.3f, model saved" % (best_mean_reward, mean_reward))
                 best_mean_reward = mean_reward
             current_player = p1
-            if len(total_rewards) > 3000:
+            if len(total_rewards) > 10000:
                 print("Solved in %d frames!" % frame_idx)
                 break
 
