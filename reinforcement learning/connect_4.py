@@ -4,9 +4,6 @@ import gym.spaces
 import numpy as np
 import collections
 
-import torch
-import torch.nn as nn
-import torch.optim as optim
 
 from tensorboardX import SummaryWriter
 
@@ -28,20 +25,21 @@ EPSILON_FINAL = 0.02
 HIDDEN_SIZE = 128
 
 ENV = 'connect4'
-class Net(nn.Module):
-    def __init__(self, obs_size, hidden_size, n_actions):
-        super(Net, self).__init__()
-        self.net = nn.Sequential(
-            nn.Linear(obs_size[0], hidden_size),
-            nn.ReLU(),
-            nn.Linear(hidden_size, n_actions)
-        )
 
-    def forward(self, x):
-        return self.net(x)
+def state_to_string(state):
+    return str(int(state[0][0])) + str(int(state[0][1])) + str(int(state[0][2])) \
+           + str(int(state[1][0])) + str(int(state[1][1])) + str(int(state[1][2])) \
+           + str(int(state[2][0])) + str(int(state[2][1])) + str(int(state[2][2]))
+
+def process_episode(p1, p2):
+    for exp in p1.exp_buffer:
+        p1.q_table[(state_to_string(exp.state), exp.action)] = exp.reward + GAMMA * p1.select_action(exp.new_state)
+
+    for exp in p2.exp_buffer:
+        p2.q_table[(state_to_string(exp.state), exp.action)] = exp.reward + GAMMA * p2.select_action(exp.new_state)
+
 
 Experience = collections.namedtuple('Experience', field_names=['state', 'action', 'reward', 'done', 'new_state'])
-
 
 class ExperienceBuffer:
     def __init__(self, capacity):
@@ -66,11 +64,21 @@ class Agent:
         self.exp_buffer = exp_buffer
         self.sym = sym
         self.net = net
+        self.q_table = collections.defaultdict(int)
         self._reset()
 
     def _reset(self):
         self.state = self.env.reset()
         self.total_reward = 0.0
+
+    def select_action(self, state):
+        best_action, best_value = None, None
+        for action in range(self.env.action_space.n):
+            action_value = self.q_table[(state_to_string(state), action)]
+            if best_value is None or best_value < action_value:
+                best_value = action_value
+                best_action = action
+        return best_action
 
     def play_step(self, other_agent, epsilon=0.0, device="cpu"):
         done_reward = None
@@ -82,16 +90,7 @@ class Agent:
                 action = self.env.action_space.sample()
 
         else:
-            state_a = np.array([self.state], copy=False)
-            state_v = torch.tensor(state_a).to(device)
-            #res = self.net.double()
-            #q_vals_v2 = res(state_v.view(9))
-            valid_actions_v = torch.tensor(valid_actions).to(device)
-            q_vals_v = self.net(state_v.view(9).float())
-            valid_q_vals_v = q_vals_v.gather(0, valid_actions_v)
-            x, act_v = torch.max(valid_q_vals_v, dim=0)
-            index = (q_vals_v == x).nonzero()
-            action = int(index)
+            action = self.select_action(self.state)
 
         # do step in the environment
         new_state, reward, is_done = self.env.step(action)
@@ -353,23 +352,15 @@ if __name__ == "__main__":
     start = time.time()
     env = Game()
 
-    device = torch.device("cuda")
 
-    net1 = Net(env.observation_space.shape, HIDDEN_SIZE, env.action_space.n).to(device)
-    tgt_net1 = Net(env.observation_space.shape, HIDDEN_SIZE, env.action_space.n).to(device)
-    optimizer1 = optim.Adam(net1.parameters(), lr=LEARNING_RATE)
-
-    net2 = Net(env.observation_space.shape, HIDDEN_SIZE, env.action_space.n).to(device)
-    tgt_net2 = Net(env.observation_space.shape, HIDDEN_SIZE, env.action_space.n).to(device)
-    optimizer2 = optim.Adam(net2.parameters(), lr=LEARNING_RATE)
 
 
     writer = SummaryWriter(comment="-" + ENV)
 
-    buffer1 = ExperienceBuffer(REPLAY_SIZE)
-    buffer2 = ExperienceBuffer(REPLAY_SIZE)
-    p1 = Agent(env, buffer1, Game.RED, net1)
-    p2 = Agent(env, buffer2, Game.YELLOW, net2)
+    buffer1 = []
+    buffer2 = []
+    p1 = Agent(env, buffer1, Game.RED, None)
+    p2 = Agent(env, buffer2, Game.YELLOW, None)
     epsilon = EPSILON_START
 
     total_rewards = []
@@ -384,10 +375,10 @@ if __name__ == "__main__":
         epsilon = max(EPSILON_FINAL, EPSILON_START - frame_idx / EPSILON_DECAY_LAST_FRAME)
 
         if current_player is p1:
-            reward, done = p1.play_step(p2, epsilon, device=device)
+            reward, done = p1.play_step(p2, epsilon)
             current_player = p2
         else:
-            reward, done = p2.play_step(p1, 1, device=device)
+            reward, done = p2.play_step(p1, 1)
             current_player = p1
 
         if done:
@@ -405,8 +396,13 @@ if __name__ == "__main__":
             writer.add_scalar("speed", speed, frame_idx)
             writer.add_scalar("reward_100", mean_reward, frame_idx)
             writer.add_scalar("reward", reward, frame_idx)
+
+            process_episode(p1, p2)
+            p1.exp_buffer = []
+            p2.exp_buffer = []
+
+
             if best_mean_reward is None or best_mean_reward < mean_reward:
-                torch.save(net1.state_dict(), ENV + "-best.dat")
                 if best_mean_reward is not None:
                     print("Best mean reward updated %.3f -> %.3f, model saved" % (best_mean_reward, mean_reward))
                 best_mean_reward = mean_reward
@@ -414,27 +410,6 @@ if __name__ == "__main__":
             if len(total_rewards) > 10000:
                 print("Solved in %d frames!" % frame_idx)
                 break
-
-        assert(len(buffer1) == len(buffer2))
-        if len(buffer1) < REPLAY_START_SIZE:
-            continue
-
-        if frame_idx % SYNC_TARGET_FRAMES == 0:
-            tgt_net1.load_state_dict(net1.state_dict())
-            tgt_net2.load_state_dict(net2.state_dict())
-
-        optimizer1.zero_grad()
-        loss_t1 = calc_loss(buffer1.sample(BATCH_SIZE), net1, tgt_net1, device=device)
-        loss_t1.backward()
-        optimizer1.step()
-        writer.add_scalar("loss1", loss_t1.item(), frame_idx)
-
-        optimizer2.zero_grad()
-        loss_t2 = calc_loss(buffer2.sample(BATCH_SIZE), net2, tgt_net2, device=device)
-        loss_t2.backward()
-        optimizer2.step()
-
-        writer.add_scalar("loss2", loss_t2, frame_idx)
 
     writer.close()
 
@@ -449,11 +424,11 @@ if __name__ == "__main__":
         done = False
         while not done:
             if current_player is p1:
-                reward, done = p1.play_step(p2, 0, device=device)
+                reward, done = p1.play_step(p2, 0)
                 current_player = p2
                 env.draw_board()
             else:
-                reward, done = p2.play_step(p1, 0, device=device)
+                reward, done = p2.play_step(p1, 0)
                 current_player = p1
 
         current_player = p1
