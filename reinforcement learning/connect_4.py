@@ -33,10 +33,12 @@ def state_to_string(state):
 
 def process_episode(p1, p2):
     for exp in p1.exp_buffer:
-        p1.q_table[(state_to_string(exp.state), exp.action)] = exp.reward + GAMMA * p1.select_action(exp.new_state)
+        best_action = p1.select_action(exp.new_state, [0, 1, 2])
+        p1.q_table[(state_to_string(exp.state), exp.action)] = exp.reward + GAMMA * p1.q_table[(state_to_string(exp.new_state), best_action)]
 
     for exp in p2.exp_buffer:
-        p2.q_table[(state_to_string(exp.state), exp.action)] = exp.reward + GAMMA * p2.select_action(exp.new_state)
+        best_action = p2.select_action(exp.new_state, [0, 1, 2])
+        p2.q_table[(state_to_string(exp.state), exp.action)] = exp.reward + GAMMA * p2.q_table[(state_to_string(exp.new_state), best_action)]
 
 
 Experience = collections.namedtuple('Experience', field_names=['state', 'action', 'reward', 'done', 'new_state'])
@@ -71,9 +73,11 @@ class Agent:
         self.state = self.env.reset()
         self.total_reward = 0.0
 
-    def select_action(self, state):
+    def select_action(self, state, valid_actions):
         best_action, best_value = None, None
         for action in range(self.env.action_space.n):
+            if not action in valid_actions:
+                continue
             action_value = self.q_table[(state_to_string(state), action)]
             if best_value is None or best_value < action_value:
                 best_value = action_value
@@ -83,6 +87,8 @@ class Agent:
     def play_step(self, other_agent, epsilon=0.0, device="cpu"):
         done_reward = None
 
+        self.state = np.array(self.env.board)
+
         valid_actions = self.env.get_valid_actions()
         if np.random.random() < epsilon:
             action = self.env.action_space.sample()
@@ -90,7 +96,7 @@ class Agent:
                 action = self.env.action_space.sample()
 
         else:
-            action = self.select_action(self.state)
+            action = self.select_action(self.state, valid_actions)
 
         # do step in the environment
         new_state, reward, is_done = self.env.step(action)
@@ -102,7 +108,7 @@ class Agent:
         exp_other = Experience(self.state, action, 0, is_done, new_state)
         other_agent.exp_buffer.append(exp_other)
 
-        self.state = new_state
+        #self.state = new_state
 
         other_agent.state = new_state
 
@@ -416,6 +422,9 @@ if __name__ == "__main__":
     env = Game()
     p1.env = env
     p2 = HumanPlayer(env, Game.YELLOW)
+
+    #p2.env = env
+    #p1 = HumanPlayer(env, Game.RED)
     epsilon = 0
 
     current_player = p1
@@ -426,10 +435,10 @@ if __name__ == "__main__":
             if current_player is p1:
                 reward, done = p1.play_step(p2, 0)
                 current_player = p2
-                env.draw_board()
             else:
                 reward, done = p2.play_step(p1, 0)
                 current_player = p1
+            env.draw_board()
 
         current_player = p1
         env.reset()
