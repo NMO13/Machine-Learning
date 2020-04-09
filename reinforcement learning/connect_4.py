@@ -185,8 +185,8 @@ class Game:
         # this is like finding the integer represented by a base-3 number
         k = 0
         h = 0
-        for i in range(self.COLUMNS):
-            for j in range(self.ROWS):
+        for i in range(self.ROWS):
+            for j in range(self.COLUMNS):
                 if self.board[i, j] == 0:
                     v = 0
                 elif self.board[i, j] == self.RED:
@@ -210,7 +210,7 @@ class Game:
             i = i + 1
         for i in range(self.ROWS):
             for j in range(self.COLUMNS):
-                val =  vals[j + i * Game.ROWS]
+                val = vals[j + i * Game.COLUMNS]
                 if val == 0:
                     self.board[i][j] = 0
                 elif val == 1:
@@ -293,7 +293,7 @@ if __name__ == "__main__":
     p1 = Player(Game.RED)
     p2 = Player(Game.YELLOW)
 
-    for episode in range(10000):
+    for episode in range(52000):
         epsilon = min_epsilon + (max_epsilon - min_epsilon) * np.exp(-episode / decay_rate)
         if episode % 200 == 0:
             print('Episode:', str(episode))
