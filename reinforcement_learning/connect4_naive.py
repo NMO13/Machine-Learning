@@ -2,34 +2,38 @@ import numpy as np
 import random
 import collections
 
-class Game:
+class Connect4Game:
     ROWS = 3
-    COLUMNS = 3
+    COLUMNS = 4
     TILES_TO_WIN = 3
     RED = 1
     YELLOW = -1
     GAMMA = 0.9
 
-    def __init__(self):
-        self.board = np.zeros( (Game.ROWS, Game.COLUMNS) )
-        self.actions = np.arange(0, Game.COLUMNS)
+    def __init__(self, *args, **kwargs):
+        Connect4Game.ROWS = kwargs.get('rows', Connect4Game.ROWS)
+        Connect4Game.COLUMNS = kwargs.get('columns', Connect4Game.COLUMNS)
+        self.board = np.zeros((Connect4Game.ROWS, Connect4Game.COLUMNS))
+        self.actions = np.arange(0, Connect4Game.COLUMNS)
+        self.latest_move = None
+
 
     def draw_board(self):
-        for i in range(Game.ROWS):
-            print('----' * Game.COLUMNS)
-            for j in range(Game.COLUMNS):
+        for i in range(Connect4Game.ROWS):
+            print('----' * Connect4Game.COLUMNS)
+            for j in range(Connect4Game.COLUMNS):
                 print("  ", end="")
-                if self.board[i, j] == Game.RED:
+                if self.board[i, j] == Connect4Game.RED:
                     print("x ", end="")
-                elif self.board[i, j] == Game.YELLOW:
+                elif self.board[i, j] == Connect4Game.YELLOW:
                     print("o ", end="")
                 else:
                     print("  ", end="")
             print("")
-        print('----' * Game.COLUMNS)
+        print('----' * Connect4Game.COLUMNS)
 
     def reset(self, p1, p2):
-        self.board = np.zeros((Game.ROWS, Game.COLUMNS))
+        self.board = np.zeros((Connect4Game.ROWS, Connect4Game.COLUMNS))
         p1.states_actions_rewards = []
         p2.states_actions_rewards = []
 
@@ -42,11 +46,11 @@ class Game:
     def get_cur_player(self, p1, p2):
         r_counter = 0
         y_counter = 0
-        for i in range(Game.ROWS):
-            for j in range(Game.COLUMNS):
-                if self.board[i][j] == Game.RED:
+        for i in range(Connect4Game.ROWS):
+            for j in range(Connect4Game.COLUMNS):
+                if self.board[i][j] == Connect4Game.RED:
                     r_counter += 1
-                elif self.board[i][j] == Game.YELLOW:
+                elif self.board[i][j] == Connect4Game.YELLOW:
                     y_counter += 1
 
         if r_counter > y_counter:
@@ -86,7 +90,7 @@ class Game:
         sar = []
         G = 0
         for s, a, r in reversed(states_actions_rewards):
-            G = r + Game.GAMMA * G
+            G = r + Connect4Game.GAMMA * G
             sar.append((s, a, G))
 
         sar.reverse()
@@ -96,8 +100,8 @@ class Game:
         col_vals = self.board[:,col]
         for idx, val in enumerate(col_vals[::-1]):
             if not val:
-                self.board[Game.ROWS - idx - 1, col] = sym
-                self.latest_move = (Game.ROWS - idx - 1, col)
+                self.board[Connect4Game.ROWS - idx - 1, col] = sym
+                self.latest_move = (Connect4Game.ROWS - idx - 1, col)
                 break
 
     def _check_adjacency(self, array, sym):
@@ -107,13 +111,16 @@ class Game:
                 adjacent_counter = 0
             else:
                 adjacent_counter += 1
-            if adjacent_counter == Game.TILES_TO_WIN:
+            if adjacent_counter == Connect4Game.TILES_TO_WIN:
                 return True
         return False
 
     def game_over(self, sym):
         if not 0 in self.board:
             return True, 0
+
+        if not self.latest_move:
+            return False, 0
 
         row = self.board[self.latest_move[0]]
         if self._check_adjacency(row, sym):
@@ -144,7 +151,7 @@ class Game:
     def get_diagonal(self, pos, reversed=False):
         if reversed:
             self.board = self.board[:, ::-1]
-            new_y = Game.COLUMNS - 1 - pos[1]
+            new_y = Connect4Game.COLUMNS - 1 - pos[1]
             pos = (pos[0], new_y)
         def in_range(x, y):
             if x < 0 or y < 0: return False
@@ -210,7 +217,7 @@ class Game:
             i = i + 1
         for i in range(self.ROWS):
             for j in range(self.COLUMNS):
-                val = vals[j + i * Game.COLUMNS]
+                val = vals[j + i * Connect4Game.COLUMNS]
                 if val == 0:
                     self.board[i][j] = 0
                 elif val == 1:
@@ -220,7 +227,7 @@ class Game:
 
     def get_valid_actions(self):
         valid_actions = []
-        for i in range(Game.COLUMNS):
+        for i in range(Connect4Game.COLUMNS):
             if not self.board[0, i]:
                 valid_actions.append(i)
         return valid_actions
@@ -288,10 +295,10 @@ if __name__ == "__main__":
     debug = False
     import time
     start = time.time()
-    mw = Game()
+    mw = Connect4Game()
 
-    p1 = Player(Game.RED)
-    p2 = Player(Game.YELLOW)
+    p1 = Player(Connect4Game.RED)
+    p2 = Player(Connect4Game.YELLOW)
 
     for episode in range(52000):
         epsilon = min_epsilon + (max_epsilon - min_epsilon) * np.exp(-episode / decay_rate)
@@ -309,7 +316,7 @@ if __name__ == "__main__":
     print('Finished')
     print('time: {}'.format(end - start))
 
-    p1 = HumanPlayer(Game.RED)
+    p1 = HumanPlayer(Connect4Game.RED)
     epsilon = 0
 
     debug = True
