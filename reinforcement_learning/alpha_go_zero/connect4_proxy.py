@@ -88,7 +88,9 @@ class Connect4Proxy(Game):
                             board as is. When the player is black, we can invert
                             the colors and return the board.
         """
-        return board * player
+        # +0 replace -0 with 0
+        # see https://stackoverflow.com/questions/11010683/how-to-have-negative-zero-always-formatted-as-positive-zero-in-a-python-string
+        return board * player + 0
 
     def getSymmetries(self, board, pi):
         """
