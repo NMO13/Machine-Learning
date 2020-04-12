@@ -5,7 +5,7 @@ import collections
 class Connect4Game:
     ROWS = 4
     COLUMNS = 4
-    TILES_TO_WIN = 4
+    TILES_TO_WIN = 3
     RED = 1
     YELLOW = -1
     GAMMA = 0.9
@@ -201,22 +201,7 @@ class Connect4Game:
         # |S| = 3^(BOARD SIZE), since each cell can have 3 possible values - empty, x, o
         # some states are not possible, e.g. all cells are x, but we ignore that detail
         # this is like finding the integer represented by a base-3 number
-        k = 0
-        h = 0
-        for i in range(self.ROWS):
-            for j in range(self.COLUMNS):
-                if self.board[i, j] == 0:
-                    v = 0
-                elif self.board[i, j] == self.RED:
-                    v = 1
-                elif self.board[i, j] == self.YELLOW:
-                    v = 2
-                h += (3 ** k) * v
-                k += 1
-        board_copy = np.copy(self.board)
-        self.set_board(h)
-        assert np.array_equal(board_copy.all(), self.board.all())
-        return h
+        return str(self.board)
 
     def set_board(self, state):
         import math
@@ -306,7 +291,7 @@ if __name__ == "__main__":
     debug = False
     import time
     start = time.time()
-    mw = Connect4Game()
+    mw = Connect4Game(rows=3, columns=4)
 
     p1 = Player(Connect4Game.RED)
     p2 = Player(Connect4Game.YELLOW)
