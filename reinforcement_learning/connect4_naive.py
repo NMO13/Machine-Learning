@@ -5,7 +5,7 @@ import collections
 class Connect4Game:
     ROWS = 4
     COLUMNS = 4
-    TILES_TO_WIN = 3
+    TILES_TO_WIN = 4
     RED = 1
     YELLOW = -1
     GAMMA = 0.9

@@ -15,13 +15,13 @@ args = dotdict({
 
     'checkpoint': './temp/',
     'load_model': False,
-    'load_folder_file': ('/dev/models/8x100x50','best.pth.tar'),
+    'load_folder_file': ('/media/nmo/3E26969E2696572D/Martin/Programmieren/Machine-Learning/reinforcement_learning/alpha_go_zero/temp','best.pth.tar'),
     'numItersForTrainExamplesHistory': 20,
 
 })
 
 if __name__ == "__main__":
-    g = Connect4Proxy(4, 4)
+    g = Connect4Proxy(6, 7)
     nnet = NNetWrapper(g)
 
     if args.load_model:
