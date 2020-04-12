@@ -3,7 +3,7 @@ import random
 import collections
 
 class Connect4Game:
-    ROWS = 3
+    ROWS = 4
     COLUMNS = 4
     TILES_TO_WIN = 3
     RED = 1
@@ -15,7 +15,6 @@ class Connect4Game:
         Connect4Game.COLUMNS = kwargs.get('columns', Connect4Game.COLUMNS)
         self.board = np.zeros((Connect4Game.ROWS, Connect4Game.COLUMNS))
         self.actions = np.arange(0, Connect4Game.COLUMNS)
-        self.latest_move = None
 
 
     def draw_board(self):
@@ -101,7 +100,6 @@ class Connect4Game:
         for idx, val in enumerate(col_vals[::-1]):
             if not val:
                 self.board[Connect4Game.ROWS - idx - 1, col] = sym
-                self.latest_move = (Connect4Game.ROWS - idx - 1, col)
                 break
 
     def _check_adjacency(self, array, sym):
@@ -117,72 +115,85 @@ class Connect4Game:
 
     def game_over(self, sym):
         if not 0 in self.board:
-            return True, 0
+            # draw has very little value
+            return True, 1e-4
 
-        if not self.latest_move:
-            return False, 0
+        res0 = self.find_connected_row(sym)
+        if res0:
+            return res0, 1
+        res0 = self.find_connected_row(-sym)
+        if res0:
+            return res0, -1
 
-        row = self.board[self.latest_move[0]]
-        if self._check_adjacency(row, sym):
-            return True, 1
-        if self._check_adjacency(row, -sym):
-            return True, -1
+        res1 = self.find_connected_col(sym)
+        if res1:
+            return res1, 1
+        res1 = self.find_connected_col(-sym)
+        if res1:
+            return res1, -1
 
-        col = self.board[:,self.latest_move[1]]
-        if self._check_adjacency(col, sym):
-            return True, 1
-        if self._check_adjacency(col, -sym):
-            return True, -1
+        res2 = self.find_connected_diagonal_asc(sym)
+        if res2:
+            return res2, 1
+        res2 = self.find_connected_diagonal_asc(-sym)
+        if res2:
+            return res2, -1
 
-        diag = self.get_diagonal(self.latest_move)
-        if self._check_adjacency(diag, sym):
-            return True, 1
-        if self._check_adjacency(diag, -sym):
-            return True, -1
-
-        diag = self.get_diagonal(self.latest_move, True)
-        if self._check_adjacency(diag, sym):
-            return True, 1
-        if self._check_adjacency(diag, -sym):
-            return True, -1
-
+        res2 = self.find_connected_diagonal_desc(sym)
+        if res2:
+            return res2, 1
+        res2 = self.find_connected_diagonal_desc(-sym)
+        if res2:
+            return res2, -1
         return False, 0
 
-    def get_diagonal(self, pos, reversed=False):
-        if reversed:
-            self.board = self.board[:, ::-1]
-            new_y = Connect4Game.COLUMNS - 1 - pos[1]
-            pos = (pos[0], new_y)
-        def in_range(x, y):
-            if x < 0 or y < 0: return False
-            if x >= self.board.shape[0] or y >= self.board.shape[1]:
-                return False
-            return True
+    def find_connected_col(self, sym):
+        for c in range(self.COLUMNS):
+            for r in range(self.ROWS-self.TILES_TO_WIN+1):
+                connected = True
+                for ttw in range(self.TILES_TO_WIN):
+                    if self.board[r+ttw][c] != sym:
+                        connected = False
+                        break
+                if connected:
+                    return True
+        return False
 
-        up_values = []
-        x = pos[0]
-        y = pos[1]
-        while True:
-            if not in_range(x, y):
-                break
-            up_values.append(self.board[x, y])
-            x -= 1
-            y -= 1
-        up_values.reverse()
+    def find_connected_row(self, sym):
+        for r in range(self.ROWS):
+            for c in range(self.COLUMNS-self.TILES_TO_WIN+1):
+                connected = True
+                for ttw in range(self.TILES_TO_WIN):
+                    if self.board[r][c+ttw] != sym:
+                        connected = False
+                        break
+                if connected:
+                    return True
+        return False
 
-        x = pos[0] + 1
-        y = pos[1] + 1
-        while True:
-            if not in_range(x, y):
-                break
-            up_values.append(self.board[x, y])
-            x += 1
-            y += 1
+    def find_connected_diagonal_desc(self, sym):
+        for c in range(self.TILES_TO_WIN - 1, self.COLUMNS):
+            for r in range(self.TILES_TO_WIN - 1, self.ROWS):
+                connected = True
+                for ttw in range(self.TILES_TO_WIN):
+                    if self.board[r - ttw][c - ttw] != sym:
+                        connected = False
+                        break
+                if connected:
+                    return True
+        return False
 
-        if reversed:
-            self.board = self.board[:, ::-1]
-        return up_values
-
+    def find_connected_diagonal_asc(self, sym):
+        for r in range(self.TILES_TO_WIN - 1, self.ROWS):
+            for c in range(self.COLUMNS - self.TILES_TO_WIN+1):
+                connected = True
+                for ttw in range(self.TILES_TO_WIN):
+                    if self.board[r - ttw][c + ttw] != sym:
+                        connected = False
+                        break
+                if connected:
+                    return True
+        return False
 
     def get_state(self):
         # returns the current state, represented as an int
