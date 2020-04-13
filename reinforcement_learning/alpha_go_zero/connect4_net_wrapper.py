@@ -16,7 +16,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from torchvision import datasets, transforms
 
 from connect4_net import Connect4Net
 
@@ -44,6 +43,7 @@ class NNetWrapper(NeuralNet):
         """
         optimizer = optim.Adam(self.nnet.parameters())
 
+        l_pi, l_v = None,None
         for epoch in range(args.epochs):
             print('EPOCH ::: ' + str(epoch+1))
             self.nnet.train()
@@ -103,6 +103,7 @@ class NNetWrapper(NeuralNet):
                             )
                 bar.next()
             bar.finish()
+        return l_pi.data.cpu().numpy(), l_v.data.cpu().numpy()
 
 
     def predict(self, board):

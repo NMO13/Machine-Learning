@@ -7,7 +7,7 @@ from pytorch_classification.utils import Bar, AverageMeter
 import time, os, sys
 from pickle import Pickler, Unpickler
 from random import shuffle
-
+from utils import visdom
 
 class Coach():
     """
@@ -114,7 +114,9 @@ class Coach():
             self.pnet.load_checkpoint(folder=self.args.checkpoint, filename='temp.pth.tar')
             pmcts = MCTS(self.game, self.pnet, self.args)
             
-            self.nnet.train(trainExamples)
+            l_pi, l_vi = self.nnet.train(trainExamples)
+            visdom.plot('Loss Pi', 'l_pi', 'Loss Pi', i, l_pi)
+            visdom.plot('Loss Pi', 'l_vi', 'Loss Value', i, l_vi)
             nmcts = MCTS(self.game, self.nnet, self.args)
 
             print('PITTING AGAINST PREVIOUS VERSION')
