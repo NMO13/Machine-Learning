@@ -121,3 +121,9 @@ class Connect4Proxy(Game):
         g = Connect4Game(rows=self.rows, columns=self.columns)
         g.board = board.copy()
         return g
+
+    def draw_board(self, board):
+        game = Connect4Game(rows=self.rows, columns=self.columns)
+        game.board = board.copy()
+        return game.draw_board()
+
