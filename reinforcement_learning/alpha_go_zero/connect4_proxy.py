@@ -103,7 +103,7 @@ class Connect4Proxy(Game):
                        form of the board and the corresponding pi vector. This
                        is used when training the neural network from examples.
         """
-        return [(board, pi)]
+        return [(board, pi), (board[:, ::-1], pi[::-1])]
 
     def stringRepresentation(self, board):
         """

@@ -19,17 +19,17 @@ class Connect4Game:
 
     def draw_board(self):
         for i in range(Connect4Game.ROWS):
-            print('----' * Connect4Game.COLUMNS)
+            print('----' * Connect4Game.COLUMNS + '-')
             for j in range(Connect4Game.COLUMNS):
-                print("  ", end="")
+                print("| ", end="")
                 if self.board[i, j] == Connect4Game.RED:
                     print("x ", end="")
                 elif self.board[i, j] == Connect4Game.YELLOW:
                     print("o ", end="")
                 else:
                     print("  ", end="")
-            print("")
-        print('----' * Connect4Game.COLUMNS)
+            print("|")
+        print('----' * Connect4Game.COLUMNS + '-')
 
     def reset(self, p1, p2):
         self.board = np.zeros((Connect4Game.ROWS, Connect4Game.COLUMNS))
